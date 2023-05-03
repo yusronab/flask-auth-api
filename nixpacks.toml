@@ -1,0 +1,4 @@
+providers = ["python"]
+
+[phases.setup]
+aptPkgs = ["libmysqlclient-dev", "libssl-dev", "python3-wheel", "python3-pip", "mysql-client", "python3-dev"]

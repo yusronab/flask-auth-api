@@ -1,0 +1,8 @@
+gunicorn
+pymysql
+flask
+flask-restx
+flask-sqlalchemy
+flask-mail
+pyjwt
+pyopenssl

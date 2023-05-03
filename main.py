@@ -1,3 +1,5 @@
+import pymysql
+pymysql.install_as_MySQLdb()
 from flask import Flask, render_template, current_app, make_response, request
 from flask_mail import Mail, Message
 from flask_restx import Resource, Api, reqparse
@@ -9,7 +11,7 @@ import jwt
 app = Flask(__name__)
 api = Api(app)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql://root:@127.0.0.1:3306/ujian_chunin"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql://root:g8LV4TW9mcyO7i01k5CI@containers-us-west-68.railway.app:5907/railway"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ECHO"] = True
 
@@ -54,19 +56,21 @@ class Registration(Resource):
 
         if(user):
             return {'message' : 'Your email address has been used'}, 409
-
+        
         try:
             user = User(email=email, name=name, password=generate_password_hash(password), is_verify=False)
-
+            
             db.session.add(user)
             db.session.commit()
 
-            user_id = user.id
+            datas = db.session.execute(db.select(User).filter_by(email=email)).first()
+
+            user_id = datas[0].id
             jwt_secret_key = current_app.config.get("JWT_SECRET_KEY", "Rahasia")
 
-            email_token = jwt.encode({"id": user_id}, jwt_secret_key, algorithm="HS256").decode("utf-8")
-
-            url = f"https://127.0.0.1:5000/user/verify-account/{email_token}"
+            email_token = jwt.encode({"id": user_id}, jwt_secret_key, algorithm="HS256")
+            # .decode("utf-8")
+            url = f"https://api-subzero.up.railway.app/user/verify-account/{email_token}"
 
             data = {
                 'name': name,
@@ -78,6 +82,7 @@ class Registration(Resource):
             msg.html = render_template("verify-email.html", data=data)
 
             mail.send(msg)
+            
             return {
                 'message' : "Success create account, check email to verify"
             }, 201
@@ -93,6 +98,7 @@ class VerifyAccount(Resource):
         try:
             decoded_token = jwt.decode(token, key="Rahasia", algorithms=["HS256"])
             user_id = decoded_token["id"]
+            print(f"{user_id} {decoded_token}")
             user = db.session.execute(db.select(User).filter_by(id=user_id)).first()[0]
             
             if not user:
@@ -152,12 +158,11 @@ class Login(Resource):
             }
 
             jwt_secret_key = current_app.config.get("JWT_SECRET_KEY", "Rahasia")
-            print(f"INFO {jwt_secret_key}")
-            token = jwt.encode(payload, jwt_secret_key, algorithm="HS256").decode("utf-8")
-            return{ 'token' : token }, 200
+            token = jwt.encode(payload, jwt_secret_key, algorithm="HS256")
 
+            return{ 'token' : token }, 200
         else:
-            return { "message" : "Wrong password" }
+            return { "message" : "Wrong password" }, 400
 
 @api.route('/user/current')
 class WhoIsLogin(Resource):
@@ -244,9 +249,9 @@ class ForgetPassword(Resource):
 
             jwt_secret_key = current_app.config.get("JWT_SECRET_KEY", "Rahasia")
 
-            email_token = jwt.encode({"id": user[0].id}, jwt_secret_key, algorithm="HS256").decode("utf-8")
+            email_token = jwt.encode({"id": user[0].id}, jwt_secret_key, algorithm="HS256")
 
-            url = f"https://127.0.0.1:5000/user/reset-password/{email_token}"
+            url = f"https://api-subzero.up.railway.app/user/reset-password/{email_token}"
 
             sender = "noreply@app.com"
             msg = Message(subject="Reset your password", sender=sender, recipients=[email])
